@@ -1,0 +1,11 @@
+asgiref
+Django==3.1.5
+requests==2.25.0
+channels==3.0.3
+djangorestframework==3.12.2
+djoser==2.1.0
+django-cors-headers==3.7.0
+psycopg2==2.8.6
+channels-redis==3.2.0
+django-channels-presence==1.0.0
+pexpect== 4.8.0

@@ -1,0 +1,56 @@
+name: Django CI
+
+on:
+  push:
+    branches: [ develop, main ]
+  pull_request:
+    branches: [ file_manager, develop, main ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+    strategy:
+      max-parallel: 4
+      matrix:
+        python-version: [3.7]
+    
+    services:
+      postgres:
+        image: postgres:11
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: code_docs
+        ports: ['5432:5432']
+        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+        
+    steps:
+    - uses: actions/checkout@v2
+      
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+            
+    - name: Install Dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        
+    - name: Run redis
+      run: |
+        docker run -p 6379:6379 -d redis:5
+      
+    - name: Check Code style
+      run: |
+        pip install flake8
+        flake8 . --max-line-length=128
+        
+    - name: Run Tests
+      env:
+        CODE_DOCS_DB_USERNAME: postgres
+        CODE_DOCS_DB_PASSWORD: postgres
+      run: |
+        python manage.py test authentication/tests
+        python manage.py test file_manager/tests
