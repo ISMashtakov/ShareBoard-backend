@@ -21,5 +21,5 @@ urlpatterns = [
     path('auth/', include('djoser.urls.authtoken')),
     path('auth/', include('djoser.urls.jwt')),
 
-    path('file/', include('file_manager.urls'))
+    path('board/', include('board_manager.urls'))
 ]

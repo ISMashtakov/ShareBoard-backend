@@ -8,11 +8,11 @@ from asgiref.sync import sync_to_async
 
 from CodeDocs_backend.asgi import application
 from authentication.models import CustomUser
-from file_manager.models import File, UserFiles, Access, Operations
-from file_manager.file_manager_backend import FileManager
+from board_manager.models import Board, UserBoards, Access
+from board_manager.board_manager_backend import BoardManager
 from authentication.serializers import UserSerializer
-from file_manager.serializers import (
-    FileSerializer, UserWithAccessSerializer, OperationSerializer
+from board_manager.serializers import (
+    BoardSerializer, UserWithAccessSerializer
 )
 
 
@@ -29,14 +29,14 @@ class MockJWTTokenUserAuthentication:
             print(e)
 
 
-class FileEditorConsumerTestCase(TransactionTestCase):
+class BoardEditorConsumerTestCase(TransactionTestCase):
 
     def setUp(self) -> None:
         self.user = CustomUser.objects.create_user(username='Igor Mashtakov',
                                                    email='111@mail.ru',
                                                    password='12345')
-        self.file = FileManager.create_file(name="file_1", programming_language="python", owner=self.user)
-        self.file = self.user.files.get()
+        self.board = BoardManager.create_board(name="board_1", board_type="kanban", owner=self.user)
+        self.board = self.user.boards.get()
 
         self.token_patcher = patch('rest_framework_simplejwt.authentication.JWTAuthentication.get_validated_token',
                                    MockJWTTokenUserAuthentication.get_validated_token)
@@ -47,33 +47,33 @@ class FileEditorConsumerTestCase(TransactionTestCase):
         self.user_patcher.start()
 
     def tearDown(self) -> None:
-        File.objects.all().delete()
+        Board.objects.all().delete()
         CustomUser.objects.all().delete()
 
         self.token_patcher.stop()
         self.user_patcher.stop()
 
-    async def test_connection__file_does_not_exist(self):
+    async def test_connection__board_does_not_exist(self):
         communicator = WebsocketCommunicator(application.application_mapping["websocket"],
-                                             "/files/yuyu/1278/")
+                                             "/boards/yuyu/1278/")
         await communicator.connect()
 
         answer = await communicator.output_queue.get()
         self.assertEqual(answer, {'type': 'websocket.close', 'code': 4404})
 
-    async def test_connection__user_have_not_access_to_file(self):
-        def delete_user_file_relation():
-            user_file_relation = UserFiles.objects.last()
-            user_file_relation.access = Access.EDITOR
-            user_file_relation.save()
+    async def test_connection__user_have_not_access_to_board(self):
+        def delete_user_board_relation():
+            user_board_relation = UserBoards.objects.last()
+            user_board_relation.access = Access.EDITOR
+            user_board_relation.save()
 
-            UserFiles.objects.all().delete()
+            UserBoards.objects.all().delete()
 
-        await sync_to_async(delete_user_file_relation)()
+        await sync_to_async(delete_user_board_relation)()
 
-        # user without access to file
+        # user without access to board
         communicator = WebsocketCommunicator(application.application_mapping["websocket"],
-                                             f"/files/{self.file.pk}/1278/")
+                                             f"/boards/{self.board.pk}/1278/")
         await communicator.connect()
 
         # channel_name
@@ -86,16 +86,16 @@ class FileEditorConsumerTestCase(TransactionTestCase):
                                    'channel_name': channel_name}
         self.assertDictEqual(channel_name_json, right_channel_name_json)
 
-        # file status
-        file_status_answer = await communicator.output_queue.get()
-        file_status_json = json.loads(file_status_answer['text'])
-        right_file_status_json = {'type': 'file_status',
+        # board status
+        board_status_answer = await communicator.output_queue.get()
+        board_status_json = json.loads(board_status_answer['text'])
+        right_board_status_json = {'type': 'board_status',
                                   'is_running': False}
-        self.assertDictEqual(file_status_json, right_file_status_json)
+        self.assertDictEqual(board_status_json, right_board_status_json)
 
-        # user without access to file
+        # user without access to board
         new_user_answer = await communicator.output_queue.get()
-        default_access = (await sync_to_async(File.objects.get)(id=self.file.pk)).link_access
+        default_access = (await sync_to_async(Board.objects.get)(id=self.board.pk)).link_access
         answer = json.loads(new_user_answer['text'])
         right_answer = {'type': 'new_user',
                         'user': {
@@ -106,7 +106,7 @@ class FileEditorConsumerTestCase(TransactionTestCase):
 
     async def test_connection__one_connection(self):
         communicator = WebsocketCommunicator(application.application_mapping["websocket"],
-                                             f"/files/{self.file.pk}/1278/")
+                                             f"/boards/{self.board.pk}/1278/")
         await communicator.connect()
 
         # channel_name
@@ -117,12 +117,12 @@ class FileEditorConsumerTestCase(TransactionTestCase):
                                    'channel_name': channel_name}
         self.assertDictEqual(channel_name_json, right_channel_name_json)
 
-        # file status
-        file_status_answer = await communicator.output_queue.get()
-        file_status_json = json.loads(file_status_answer['text'])
-        right_file_status_json = {'type': 'file_status',
+        # board status
+        board_status_answer = await communicator.output_queue.get()
+        board_status_json = json.loads(board_status_answer['text'])
+        right_board_status_json = {'type': 'board_status',
                                   'is_running': False}
-        self.assertDictEqual(file_status_json, right_file_status_json)
+        self.assertDictEqual(board_status_json, right_board_status_json)
 
         # new user
         new_user_answer = await communicator.output_queue.get()
@@ -137,7 +137,7 @@ class FileEditorConsumerTestCase(TransactionTestCase):
     async def test_connection__two_connections_from_one_user(self):
         # the first connection
         communicator = WebsocketCommunicator(application.application_mapping["websocket"],
-                                             f"/files/{self.file.pk}/1278/")
+                                             f"/boards/{self.board.pk}/1278/")
         await communicator.connect()
 
         # channel_name
@@ -148,12 +148,12 @@ class FileEditorConsumerTestCase(TransactionTestCase):
                                    'channel_name': channel_name}
         self.assertDictEqual(channel_name_json, right_channel_name_json)
 
-        # file status
-        file_status_answer = await communicator.output_queue.get()
-        file_status_json = json.loads(file_status_answer['text'])
-        right_file_status_json = {'type': 'file_status',
+        # board status
+        board_status_answer = await communicator.output_queue.get()
+        board_status_json = json.loads(board_status_answer['text'])
+        right_board_status_json = {'type': 'board_status',
                                   'is_running': False}
-        self.assertDictEqual(file_status_json, right_file_status_json)
+        self.assertDictEqual(board_status_json, right_board_status_json)
 
         # new_user
         new_user_answer = await communicator.output_queue.get()
@@ -167,7 +167,7 @@ class FileEditorConsumerTestCase(TransactionTestCase):
 
         # the second connection
         another_communicator = WebsocketCommunicator(application.application_mapping["websocket"],
-                                                     f"/files/{self.file.pk}/1278/")
+                                                     f"/boards/{self.board.pk}/1278/")
         await another_communicator.connect()
 
         # another channel_name
@@ -181,42 +181,42 @@ class FileEditorConsumerTestCase(TransactionTestCase):
                                            'channel_name': another_channel_name}
         self.assertDictEqual(another_channel_name_json, right_another_channel_name_json)
 
-        # file status
-        file_status_answer = await another_communicator.output_queue.get()
-        file_status_json = json.loads(file_status_answer['text'])
-        right_file_status_json = {'type': 'file_status',
+        # board status
+        board_status_answer = await another_communicator.output_queue.get()
+        board_status_json = json.loads(board_status_answer['text'])
+        right_board_status_json = {'type': 'board_status',
                                   'is_running': False}
-        self.assertDictEqual(file_status_json, right_file_status_json)
+        self.assertDictEqual(board_status_json, right_board_status_json)
 
         # no new user answer
         self.assertTrue(await another_communicator.receive_nothing(1))
         self.assertEqual(2, await sync_to_async(Presence.objects.count)())  # number of connections
 
-    async def test_file_info(self):
+    async def test_board_info(self):
         communicator = WebsocketCommunicator(application.application_mapping["websocket"],
-                                             f"/files/{self.file.pk}/1278/")
+                                             f"/boards/{self.board.pk}/1278/")
         await communicator.connect()
 
         _ = await communicator.output_queue.get()  # channel_name
-        _ = await communicator.output_queue.get()  # file_status
+        _ = await communicator.output_queue.get()  # board_status
         _ = await communicator.output_queue.get()  # new_user
 
-        await communicator.send_json_to({'type': 'file_info'})
-        file_info_answer = await communicator.output_queue.get()
-        self.assertEqual(file_info_answer['type'], 'websocket.send')
+        await communicator.send_json_to({'type': 'board_info'})
+        board_info_answer = await communicator.output_queue.get()
+        self.assertEqual(board_info_answer['type'], 'websocket.send')
 
-        file_answer = json.loads(file_info_answer['text'])
-        right_file_answer = {'type': 'file_info',
-                             'file': FileSerializer(self.file).data}
-        self.assertDictEqual(file_answer, right_file_answer)
+        board_answer = json.loads(board_info_answer['text'])
+        right_board_answer = {'type': 'board_info',
+                             'board': BoardSerializer(self.board).data}
+        self.assertDictEqual(board_answer, right_board_answer)
 
     async def test_active_users__one_user(self):
         communicator = WebsocketCommunicator(application.application_mapping["websocket"],
-                                             f"/files/{self.file.pk}/1278/")
+                                             f"/boards/{self.board.pk}/1278/")
         await communicator.connect()
 
         _ = await communicator.output_queue.get()  # channel_name
-        _ = await communicator.output_queue.get()  # file_status
+        _ = await communicator.output_queue.get()  # board_status
         _ = await communicator.output_queue.get()  # new_user
 
         await communicator.send_json_to({'type': 'active_users'})
@@ -224,22 +224,22 @@ class FileEditorConsumerTestCase(TransactionTestCase):
         active_users_answer = await communicator.output_queue.get()
         users_answer = json.loads(active_users_answer['text'])
 
-        def access_to_file():
-            users_with_access = UserFiles.objects.filter(user=self.user, file=self.file).all()
+        def access_to_board():
+            users_with_access = UserBoards.objects.filter(user=self.user, board=self.board).all()
             return UserWithAccessSerializer(users_with_access, many=True).data
 
         right_users_answer = {'type': 'active_users',
-                              'users': await sync_to_async(access_to_file)()}
+                              'users': await sync_to_async(access_to_board)()}
         self.assertDictEqual(users_answer, right_users_answer)
 
     async def test_active_users__users(self):
         # the first user connect
         communicator = WebsocketCommunicator(application.application_mapping["websocket"],
-                                             f"/files/{self.file.pk}/1278/")
+                                             f"/boards/{self.board.pk}/1278/")
         await communicator.connect()
 
         _ = await communicator.output_queue.get()  # channel_name
-        _ = await communicator.output_queue.get()  # file_status
+        _ = await communicator.output_queue.get()  # board_status
         _ = await communicator.output_queue.get()  # new_user
 
         users_data = [{'username': 'Michael', 'email': '1@mail.ru', 'password': '1345'},
@@ -250,7 +250,7 @@ class FileEditorConsumerTestCase(TransactionTestCase):
             _ = await sync_to_async(CustomUser.objects.create_user)(**user_data)
 
             another_communicator = WebsocketCommunicator(application.application_mapping["websocket"],
-                                                         f"/files/{self.file.pk}/1278/")
+                                                         f"/boards/{self.board.pk}/1278/")
             await another_communicator.connect()
             _ = await communicator.output_queue.get()  # new user
 
@@ -259,7 +259,7 @@ class FileEditorConsumerTestCase(TransactionTestCase):
         users_answer = json.loads(active_users_answer['text'])
 
         def check_active_users():
-            users = UserFiles.objects.all()
+            users = UserBoards.objects.all()
             serialized_users = UserWithAccessSerializer(users, many=True).data
             self.assertTrue(len(serialized_users), len(users_answer['users']))
             for user in serialized_users:
@@ -270,20 +270,20 @@ class FileEditorConsumerTestCase(TransactionTestCase):
     async def test_active_users__two_connections_from_one_user(self):
         # the first connection
         communicator = WebsocketCommunicator(application.application_mapping["websocket"],
-                                             f"/files/{self.file.pk}/1278/")
+                                             f"/boards/{self.board.pk}/1278/")
         await communicator.connect()
 
         _ = await communicator.output_queue.get()  # channel_name
-        _ = await communicator.output_queue.get()  # file_status
+        _ = await communicator.output_queue.get()  # board_status
         _ = await communicator.output_queue.get()  # new_user
 
         # the second connection
         another_communicator = WebsocketCommunicator(application.application_mapping["websocket"],
-                                                     f"/files/{self.file.pk}/1278/")
+                                                     f"/boards/{self.board.pk}/1278/")
         await another_communicator.connect()
 
         _ = await another_communicator.output_queue.get()  # channel_name
-        _ = await another_communicator.output_queue.get()  # file_status
+        _ = await another_communicator.output_queue.get()  # board_status
 
         # active users
         await communicator.send_json_to({'type': 'active_users'})
@@ -291,23 +291,23 @@ class FileEditorConsumerTestCase(TransactionTestCase):
         active_users_answer = await communicator.output_queue.get()
         users_answer = json.loads(active_users_answer['text'])
 
-        def access_to_file():
-            users_with_access = UserFiles.objects.filter(user=self.user, file=self.file).all()
+        def access_to_board():
+            users_with_access = UserBoards.objects.filter(user=self.user, board=self.board).all()
             return UserWithAccessSerializer(users_with_access, many=True).data
 
         right_users_answer = {'type': 'active_users',
-                              'users': await sync_to_async(access_to_file)()}
+                              'users': await sync_to_async(access_to_board)()}
         self.assertDictEqual(users_answer, right_users_answer)
 
         self.assertEqual(2, await sync_to_async(Presence.objects.count)())  # number of connections
 
     async def test_all_users__one_user(self):
         communicator = WebsocketCommunicator(application.application_mapping["websocket"],
-                                             f"/files/{self.file.pk}/1278/")
+                                             f"/boards/{self.board.pk}/1278/")
         await communicator.connect()
 
         _ = await communicator.output_queue.get()  # channel_name
-        _ = await communicator.output_queue.get()  # file_status
+        _ = await communicator.output_queue.get()  # board_status
         _ = await communicator.output_queue.get()  # new_user
 
         await communicator.send_json_to({'type': 'all_users'})
@@ -315,31 +315,31 @@ class FileEditorConsumerTestCase(TransactionTestCase):
         all_users_answer = await communicator.output_queue.get()
         users_answer = json.loads(all_users_answer['text'])
 
-        def access_to_file():
-            users_with_access = UserFiles.objects.filter(user=self.user, file=self.file).all()
+        def access_to_board():
+            users_with_access = UserBoards.objects.filter(user=self.user, board=self.board).all()
             return UserWithAccessSerializer(users_with_access, many=True).data
 
         right_users_answer = {'type': 'all_users',
-                              'users': await sync_to_async(access_to_file)()}
+                              'users': await sync_to_async(access_to_board)()}
         self.assertDictEqual(users_answer, right_users_answer)
 
     async def test_all_users__two_connections_from_one_user(self):
         # the first connection
         communicator = WebsocketCommunicator(application.application_mapping["websocket"],
-                                             f"/files/{self.file.pk}/1278/")
+                                             f"/boards/{self.board.pk}/1278/")
         await communicator.connect()
 
         _ = await communicator.output_queue.get()  # channel_name
-        _ = await communicator.output_queue.get()  # file_status
+        _ = await communicator.output_queue.get()  # board_status
         _ = await communicator.output_queue.get()  # new_user
 
         # the second connection
         another_communicator = WebsocketCommunicator(application.application_mapping["websocket"],
-                                                     f"/files/{self.file.pk}/1278/")
+                                                     f"/boards/{self.board.pk}/1278/")
         await another_communicator.connect()
 
         _ = await another_communicator.output_queue.get()  # channel_name
-        _ = await another_communicator.output_queue.get()  # file_status
+        _ = await another_communicator.output_queue.get()  # board_status
 
         # active users
         await communicator.send_json_to({'type': 'all_users'})
@@ -347,12 +347,12 @@ class FileEditorConsumerTestCase(TransactionTestCase):
         all_users_answer = await communicator.output_queue.get()
         users_answer = json.loads(all_users_answer['text'])
 
-        def access_to_file():
-            users_with_access = UserFiles.objects.filter(user=self.user, file=self.file).all()
+        def access_to_board():
+            users_with_access = UserBoards.objects.filter(user=self.user, board=self.board).all()
             return UserWithAccessSerializer(users_with_access, many=True).data
 
         right_users_answer = {'type': 'all_users',
-                              'users': await sync_to_async(access_to_file)()}
+                              'users': await sync_to_async(access_to_board)()}
         self.assertDictEqual(users_answer, right_users_answer)
 
         self.assertEqual(2, await sync_to_async(Presence.objects.count)())  # number of connections
@@ -360,11 +360,11 @@ class FileEditorConsumerTestCase(TransactionTestCase):
     async def test_all_users__several_users(self):
         # the first user connect
         communicator = WebsocketCommunicator(application.application_mapping["websocket"],
-                                             f"/files/{self.file.pk}/1278/")
+                                             f"/boards/{self.board.pk}/1278/")
         await communicator.connect()
 
         _ = await communicator.output_queue.get()  # channel_name
-        _ = await communicator.output_queue.get()  # file_status
+        _ = await communicator.output_queue.get()  # board_status
         _ = await communicator.output_queue.get()  # new_user
 
         users_data = [{'username': 'Michael', 'email': '1@mail.ru', 'password': '1345'},
@@ -379,126 +379,126 @@ class FileEditorConsumerTestCase(TransactionTestCase):
         users_answer = json.loads(all_users_answer['text'])
 
         def serialized_all_users():
-            users = UserFiles.objects.all()
+            users = UserBoards.objects.all()
             return UserWithAccessSerializer(users, many=True).data
 
         right_users_answer = {'type': "all_users",
                               'users': await sync_to_async(serialized_all_users)()}
         self.assertDictEqual(users_answer, right_users_answer)
 
-    async def test_change_file_config__change_filename(self):
+    async def test_change_board_config__change_board_name(self):
         communicator = WebsocketCommunicator(application.application_mapping["websocket"],
-                                             f"/files/{self.file.pk}/1278/")
+                                             f"/boards/{self.board.pk}/1278/")
         await communicator.connect()
 
         _ = await communicator.output_queue.get()  # channel_name
-        _ = await communicator.output_queue.get()  # file_status
+        _ = await communicator.output_queue.get()  # board_status
         _ = await communicator.output_queue.get()  # new_user
 
-        new_name = 'another_file_1'
-        await communicator.send_json_to({'type': 'change_file_config',
+        new_name = 'another_board_1'
+        await communicator.send_json_to({'type': 'change_board_config',
                                          'config': {
                                              'name': new_name
                                          }})
-        self.file.name = new_name
+        self.board.name = new_name
 
-        file_info_answer = await communicator.output_queue.get()
-        file_answer = json.loads(file_info_answer['text'])
-        right_file_answer = {'type': 'change_file_config',
-                             'file': FileSerializer(self.file).data}
-        self.assertDictEqual(file_answer, right_file_answer)
+        board_info_answer = await communicator.output_queue.get()
+        board_answer = json.loads(board_info_answer['text'])
+        right_board_answer = {'type': 'change_board_config',
+                             'board': BoardSerializer(self.board).data}
+        self.assertDictEqual(board_answer, right_board_answer)
 
-    async def test_change_file_config__change_filename_and_pl(self):
+    async def test_change_board_config__change_board_name_and_pl(self):
         communicator = WebsocketCommunicator(application.application_mapping["websocket"],
-                                             f"/files/{self.file.pk}/1278/")
+                                             f"/boards/{self.board.pk}/1278/")
         await communicator.connect()
 
         _ = await communicator.output_queue.get()  # channel_name
-        _ = await communicator.output_queue.get()  # file_status
+        _ = await communicator.output_queue.get()  # board_status
         _ = await communicator.output_queue.get()  # new_user
 
-        new_file_config = {'name': 'another_file_1',
-                           'programming_language': 'js'}
-        await communicator.send_json_to({'type': 'change_file_config',
-                                         'config': new_file_config})
+        new_board_config = {'name': 'another_board_1',
+                           'board_type': 'js'}
+        await communicator.send_json_to({'type': 'change_board_config',
+                                         'config': new_board_config})
 
-        self.file.name = new_file_config['name']
-        self.file.programming_language = new_file_config['programming_language']
+        self.board.name = new_board_config['name']
+        self.board.board_type = new_board_config['board_type']
 
-        file_info_answer = await communicator.output_queue.get()
-        file_answer = json.loads(file_info_answer['text'])
-        right_file_answer = {'type': 'change_file_config',
-                             'file': FileSerializer(self.file).data}
-        self.assertDictEqual(file_answer, right_file_answer)
+        board_info_answer = await communicator.output_queue.get()
+        board_answer = json.loads(board_info_answer['text'])
+        right_board_answer = {'type': 'change_board_config',
+                             'board': BoardSerializer(self.board).data}
+        self.assertDictEqual(board_answer, right_board_answer)
 
-    async def test_change_file_config__change_to_the_same_config(self):
+    async def test_change_board_config__change_to_the_same_config(self):
         communicator = WebsocketCommunicator(application.application_mapping["websocket"],
-                                             f"/files/{self.file.pk}/1278/")
+                                             f"/boards/{self.board.pk}/1278/")
         await communicator.connect()
 
         _ = await communicator.output_queue.get()  # channel_name
-        _ = await communicator.output_queue.get()  # file_status
+        _ = await communicator.output_queue.get()  # board_status
         _ = await communicator.output_queue.get()  # new_user
 
-        new_file_config = {'name': self.file.name,
-                           'programming_language': self.file.programming_language}
-        await communicator.send_json_to({'type': 'change_file_config',
-                                         'config': new_file_config})
+        new_board_config = {'name': self.board.name,
+                           'board_type': self.board.board_type}
+        await communicator.send_json_to({'type': 'change_board_config',
+                                         'config': new_board_config})
 
-        file_info_answer = await communicator.output_queue.get()
-        file_answer = json.loads(file_info_answer['text'])
-        right_file_answer = {'type': 'change_file_config',
-                             'file': FileSerializer(self.file).data}
-        self.assertDictEqual(file_answer, right_file_answer)
+        board_info_answer = await communicator.output_queue.get()
+        board_answer = json.loads(board_info_answer['text'])
+        right_board_answer = {'type': 'change_board_config',
+                             'board': BoardSerializer(self.board).data}
+        self.assertDictEqual(board_answer, right_board_answer)
 
-    async def test_change_file_config__change_nothing(self):
+    async def test_change_board_config__change_nothing(self):
         communicator = WebsocketCommunicator(application.application_mapping["websocket"],
-                                             f"/files/{self.file.pk}/1278/")
+                                             f"/boards/{self.board.pk}/1278/")
         await communicator.connect()
 
         _ = await communicator.output_queue.get()  # channel_name
-        _ = await communicator.output_queue.get()  # file_status
+        _ = await communicator.output_queue.get()  # board_status
         _ = await communicator.output_queue.get()  # new_user
 
-        await communicator.send_json_to({'type': 'change_file_config',
+        await communicator.send_json_to({'type': 'change_board_config',
                                          'config': {}})
-        file_info_answer = await communicator.output_queue.get()
+        board_info_answer = await communicator.output_queue.get()
 
-        file_answer = json.loads(file_info_answer['text'])
-        right_file_answer = {'type': 'change_file_config',
-                             'file': FileSerializer(self.file).data}
-        self.assertDictEqual(file_answer, right_file_answer)
+        board_answer = json.loads(board_info_answer['text'])
+        right_board_answer = {'type': 'change_board_config',
+                             'board': BoardSerializer(self.board).data}
+        self.assertDictEqual(board_answer, right_board_answer)
 
     async def test_change_link_access(self):
         communicator = WebsocketCommunicator(application.application_mapping["websocket"],
-                                             f"/files/{self.file.pk}/1278/")
+                                             f"/boards/{self.board.pk}/1278/")
         await communicator.connect()
 
         _ = await communicator.output_queue.get()  # channel_name
-        _ = await communicator.output_queue.get()  # file_status
+        _ = await communicator.output_queue.get()  # board_status
         _ = await communicator.output_queue.get()  # new_user
 
         new_access = Access.EDITOR
         await communicator.send_json_to({'type': 'change_link_access',
                                          'new_access': new_access})
 
-        file_info_answer = await communicator.output_queue.get()
-        file_answer = json.loads(file_info_answer['text'])
-        right_file_answer = {'type': 'change_link_access',
+        board_info_answer = await communicator.output_queue.get()
+        board_answer = json.loads(board_info_answer['text'])
+        right_board_answer = {'type': 'change_link_access',
                              'new_access': new_access}
-        self.assertDictEqual(file_answer, right_file_answer)
+        self.assertDictEqual(board_answer, right_board_answer)
 
-        await sync_to_async(self.file.refresh_from_db)()
-        self.assertEqual(self.file.link_access, new_access)
+        await sync_to_async(self.board.refresh_from_db)()
+        self.assertEqual(self.board.link_access, new_access)
 
     async def test_change_user_access__cannot_change_user_access(self):
         # the first user connect
         communicator = WebsocketCommunicator(application.application_mapping["websocket"],
-                                             f"/files/{self.file.pk}/1278/")
+                                             f"/boards/{self.board.pk}/1278/")
         await communicator.connect()
 
         _ = await communicator.output_queue.get()  # channel_name
-        _ = await communicator.output_queue.get()  # file_status
+        _ = await communicator.output_queue.get()  # board_status
         _ = await communicator.output_queue.get()  # new_user
 
         # the second user connect
@@ -506,11 +506,11 @@ class FileEditorConsumerTestCase(TransactionTestCase):
                                                                 email='1@mail.ru',
                                                                 password='15')
         another_communicator = WebsocketCommunicator(application.application_mapping["websocket"],
-                                                     f"/files/{self.file.pk}/1278/")
+                                                     f"/boards/{self.board.pk}/1278/")
         await another_communicator.connect()
 
         _ = await another_communicator.output_queue.get()  # channel_name
-        _ = await another_communicator.output_queue.get()  # file_status
+        _ = await another_communicator.output_queue.get()  # board_status
         _ = await another_communicator.output_queue.get()  # new_user
 
         # the second user try to change the first user access
@@ -527,19 +527,19 @@ class FileEditorConsumerTestCase(TransactionTestCase):
 
     async def test_change_user_access__cannot_change_to_this_access(self):
         def change_access():
-            access_to_file = UserFiles.objects.get(user=self.user, file=self.file)
-            access_to_file.access = Access.VIEWER
-            access_to_file.save()
+            access_to_board = UserBoards.objects.get(user=self.user, board=self.board)
+            access_to_board.access = Access.VIEWER
+            access_to_board.save()
 
         await sync_to_async(change_access)()
 
         # the first user connect
         communicator = WebsocketCommunicator(application.application_mapping["websocket"],
-                                             f"/files/{self.file.pk}/1278/")
+                                             f"/boards/{self.board.pk}/1278/")
         await communicator.connect()
 
         _ = await communicator.output_queue.get()  # channel_name
-        _ = await communicator.output_queue.get()  # file_status
+        _ = await communicator.output_queue.get()  # board_status
         _ = await communicator.output_queue.get()  # new_user
 
         # the second user connect
@@ -547,11 +547,11 @@ class FileEditorConsumerTestCase(TransactionTestCase):
                                                                 email='1@mail.ru',
                                                                 password='15')
         another_communicator = WebsocketCommunicator(application.application_mapping["websocket"],
-                                                     f"/files/{self.file.pk}/1278/")
+                                                     f"/boards/{self.board.pk}/1278/")
         await another_communicator.connect()
 
         _ = await another_communicator.output_queue.get()  # channel_name
-        _ = await another_communicator.output_queue.get()  # file_status
+        _ = await another_communicator.output_queue.get()  # board_status
         _ = await another_communicator.output_queue.get()  # new_user
 
         # the second user try to change the first user access
@@ -569,11 +569,11 @@ class FileEditorConsumerTestCase(TransactionTestCase):
     async def test_change_user_access__oks(self):
         # the first user connect
         communicator = WebsocketCommunicator(application.application_mapping["websocket"],
-                                             f"/files/{self.file.pk}/1278/")
+                                             f"/boards/{self.board.pk}/1278/")
         await communicator.connect()
 
         _ = await communicator.output_queue.get()  # channel_name
-        _ = await communicator.output_queue.get()  # file_status
+        _ = await communicator.output_queue.get()  # board_status
         _ = await communicator.output_queue.get()  # new_user
 
         # the second user connect
@@ -581,11 +581,11 @@ class FileEditorConsumerTestCase(TransactionTestCase):
                                                                            email='1@mail.ru',
                                                                            password='15')
         another_communicator = WebsocketCommunicator(application.application_mapping["websocket"],
-                                                     f"/files/{self.file.pk}/1278/")
+                                                     f"/boards/{self.board.pk}/1278/")
         await another_communicator.connect()
 
         _ = await another_communicator.output_queue.get()  # channel_name
-        _ = await another_communicator.output_queue.get()  # file_status
+        _ = await another_communicator.output_queue.get()  # board_status
         _ = await another_communicator.output_queue.get()  # new_user
 
         await communicator.send_json_to({'type': 'change_user_access',
@@ -596,7 +596,7 @@ class FileEditorConsumerTestCase(TransactionTestCase):
         change_access_answer = json.loads(change_user_access_answer['text'])
 
         def another_user_with_access():
-            user_with_access = UserFiles.objects.get(user=another_user, file=self.file)
+            user_with_access = UserBoards.objects.get(user=another_user, board=self.board)
             return UserWithAccessSerializer(user_with_access).data
         right_change_access_answer = {'type': 'change_user_access',
                                       'user': await sync_to_async(another_user_with_access)()}
@@ -604,11 +604,11 @@ class FileEditorConsumerTestCase(TransactionTestCase):
 
     async def test_apply_operation__one_operation(self):
         communicator = WebsocketCommunicator(application.application_mapping["websocket"],
-                                             f"/files/{self.file.pk}/1278/")
+                                             f"/boards/{self.board.pk}/1278/")
         await communicator.connect()
 
         _ = await communicator.output_queue.get()  # channel_name
-        _ = await communicator.output_queue.get()  # file_status
+        _ = await communicator.output_queue.get()  # board_status
         _ = await communicator.output_queue.get()  # new_user
 
         operation = {'type': Operations.Type.INSERT,
@@ -621,12 +621,12 @@ class FileEditorConsumerTestCase(TransactionTestCase):
         apply_operation_answer = await communicator.output_queue.get()
 
         def check_operation():
-            prev_revision = self.file.last_revision
-            self.file.refresh_from_db()
-            self.assertEqual(prev_revision + 1, self.file.last_revision)
-            self.assertEqual(self.file.content, operation['text'])
+            prev_revision = self.board.last_revision
+            self.board.refresh_from_db()
+            self.assertEqual(prev_revision + 1, self.board.last_revision)
+            self.assertEqual(self.board.content, operation['text'])
 
-            self.assertTrue(Operations.objects.filter(**operation, revision=self.file.last_revision).exists())
+            self.assertTrue(Operations.objects.filter(**operation, revision=self.board.last_revision).exists())
 
             operation_answer = json.loads(apply_operation_answer['text'])
 
@@ -640,26 +640,26 @@ class FileEditorConsumerTestCase(TransactionTestCase):
     async def test_apply_operation__several_operations(self):
         # the first connect
         communicator = WebsocketCommunicator(application.application_mapping["websocket"],
-                                             f"/files/{self.file.pk}/1278/")
+                                             f"/boards/{self.board.pk}/1278/")
         await communicator.connect()
 
         _ = await communicator.output_queue.get()  # channel_name
-        _ = await communicator.output_queue.get()  # file_status
+        _ = await communicator.output_queue.get()  # board_status
         _ = await communicator.output_queue.get()  # new_user
 
-        self.file.link_access = Access.EDITOR
-        await sync_to_async(self.file.save)()
+        self.board.link_access = Access.EDITOR
+        await sync_to_async(self.board.save)()
 
         # the second_connect
         _ = await sync_to_async(CustomUser.objects.create_user)(username='Michael Scofield',
                                                                 email='1@mail.ru',
                                                                 password='15')
         another_communicator = WebsocketCommunicator(application.application_mapping["websocket"],
-                                                     f"/files/{self.file.pk}/1278/")
+                                                     f"/boards/{self.board.pk}/1278/")
         await another_communicator.connect()
 
         _ = await another_communicator.output_queue.get()  # channel_name
-        _ = await another_communicator.output_queue.get()  # file_status
+        _ = await another_communicator.output_queue.get()  # board_status
         _ = await another_communicator.output_queue.get()  # new_user
         _ = await communicator.output_queue.get()  # new_user
 
@@ -698,9 +698,9 @@ class FileEditorConsumerTestCase(TransactionTestCase):
         self.assertDictEqual(await communicator.output_queue.get(), await another_communicator.output_queue.get())
 
         def check_result():
-            self.file.refresh_from_db()
-            self.assertEqual(self.file.last_revision, 4)
-            self.assertEqual(self.file.content, "llo World!!")
+            self.board.refresh_from_db()
+            self.assertEqual(self.board.last_revision, 4)
+            self.assertEqual(self.board.content, "llo World!!")
 
             self.assertTrue(Operations.objects.count(), 4)
 
@@ -709,11 +709,11 @@ class FileEditorConsumerTestCase(TransactionTestCase):
     async def test_apply_operation__owner_and_viewer(self):
         # the first connect
         communicator = WebsocketCommunicator(application.application_mapping["websocket"],
-                                             f"/files/{self.file.pk}/1278/")
+                                             f"/boards/{self.board.pk}/1278/")
         await communicator.connect()
 
         _ = await communicator.output_queue.get()  # channel_name
-        _ = await communicator.output_queue.get()  # file_status
+        _ = await communicator.output_queue.get()  # board_status
         _ = await communicator.output_queue.get()  # new_user
 
         # the second_connect
@@ -721,11 +721,11 @@ class FileEditorConsumerTestCase(TransactionTestCase):
                                                                 email='1@mail.ru',
                                                                 password='15')
         another_communicator = WebsocketCommunicator(application.application_mapping["websocket"],
-                                                     f"/files/{self.file.pk}/1278/")
+                                                     f"/boards/{self.board.pk}/1278/")
         await another_communicator.connect()
 
         _ = await another_communicator.output_queue.get()  # channel_name
-        _ = await another_communicator.output_queue.get()  # file_status
+        _ = await another_communicator.output_queue.get()  # board_status
         _ = await another_communicator.output_queue.get()  # new_user
         _ = await communicator.output_queue.get()  # new_user
 
@@ -765,9 +765,9 @@ class FileEditorConsumerTestCase(TransactionTestCase):
         self.assertDictEqual(await communicator.output_queue.get(), await another_communicator.output_queue.get())
 
         def check_result():
-            self.file.refresh_from_db()
-            self.assertEqual(self.file.last_revision, 3)
-            self.assertEqual(self.file.content, "Hello World!!")
+            self.board.refresh_from_db()
+            self.assertEqual(self.board.last_revision, 3)
+            self.assertEqual(self.board.content, "Hello World!!")
 
             self.assertTrue(Operations.objects.count(), 3)
 
@@ -776,11 +776,11 @@ class FileEditorConsumerTestCase(TransactionTestCase):
     async def test_change_cursor_position(self):
         # the first connection
         communicator = WebsocketCommunicator(application.application_mapping["websocket"],
-                                             f"/files/{self.file.pk}/1278/")
+                                             f"/boards/{self.board.pk}/1278/")
         await communicator.connect()
 
         _ = await communicator.output_queue.get()  # channel_name
-        _ = await communicator.output_queue.get()  # file_status
+        _ = await communicator.output_queue.get()  # board_status
         _ = await communicator.output_queue.get()  # new_user
 
         # the second_connect
@@ -788,11 +788,11 @@ class FileEditorConsumerTestCase(TransactionTestCase):
                                                                 email='1@mail.ru',
                                                                 password='15')
         another_communicator = WebsocketCommunicator(application.application_mapping["websocket"],
-                                                     f"/files/{self.file.pk}/1278/")
+                                                     f"/boards/{self.board.pk}/1278/")
         await another_communicator.connect()
 
         _ = await another_communicator.output_queue.get()  # channel_name
-        _ = await another_communicator.output_queue.get()  # file_status
+        _ = await another_communicator.output_queue.get()  # board_status
         _ = await another_communicator.output_queue.get()  # new_user
         _ = await communicator.output_queue.get()  # new_user
 

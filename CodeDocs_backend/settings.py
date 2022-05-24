@@ -53,7 +53,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'authentication.apps.AuthenticationConfig',
-    'file_manager.apps.FileManagerConfig',
+    'board_manager.apps.BoardManagerConfig',
 
     'rest_framework.authtoken',
     'rest_framework',

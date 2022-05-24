@@ -85,7 +85,7 @@ venv.bak/
 # my configs
 CodeDocs_backend/config_postgresql.py
 for_me.py
-file_manager/example_programm
+board_manager/example_programm
 filr_manager/run_script
 
 # idea
@@ -96,5 +96,5 @@ filr_manager/run_script
 
 # migrations
 authentication/migrations/
-file_manager/migrations/
+board_manager/migrations/
 

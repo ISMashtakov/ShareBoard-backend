@@ -1,2 +1,0 @@
-FROM python:latest
-CMD ["python3", "/root/my_file" ]
