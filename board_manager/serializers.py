@@ -29,4 +29,4 @@ class UserWithAccessSerializer(serializers.ModelSerializer):
 class BoardSerializer(serializers.ModelSerializer):
     class Meta:
         model = Board
-        fields = ('id', 'name', 'type', 'link_access')
+        fields = ('id', 'name', 'board_type', 'link_access')

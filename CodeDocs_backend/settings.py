@@ -165,8 +165,8 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql_psycopg2',
         'NAME': 'code_docs',
-        'USER': os.getenv('CODE_DOCS_DB_USERNAME'),
-        'PASSWORD': os.getenv('CODE_DOCS_DB_PASSWORD'),
+        'USER': 'postgres',
+        'PASSWORD': 'password',
         'HOST': '127.0.0.1',
         'PORT': '5432',
         'TEST': {

@@ -9,7 +9,7 @@ class BoardManager:
     @staticmethod
     def create_board(name, board_type, owner, prev_board_id=None):
         board = Board.objects.create(name=name,
-                                     type=board_type)
+                                     board_type=board_type)
 
         UserBoards.objects.create(board=board,
                                   user=owner,
