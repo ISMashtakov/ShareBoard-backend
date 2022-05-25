@@ -86,13 +86,6 @@ class BoardEditorConsumerTestCase(TransactionTestCase):
                                    'channel_name': channel_name}
         self.assertDictEqual(channel_name_json, right_channel_name_json)
 
-        # board status
-        board_status_answer = await communicator.output_queue.get()
-        board_status_json = json.loads(board_status_answer['text'])
-        right_board_status_json = {'type': 'board_status',
-                                  'is_running': False}
-        self.assertDictEqual(board_status_json, right_board_status_json)
-
         # user without access to board
         new_user_answer = await communicator.output_queue.get()
         default_access = (await sync_to_async(Board.objects.get)(id=self.board.pk)).link_access
@@ -117,13 +110,6 @@ class BoardEditorConsumerTestCase(TransactionTestCase):
                                    'channel_name': channel_name}
         self.assertDictEqual(channel_name_json, right_channel_name_json)
 
-        # board status
-        board_status_answer = await communicator.output_queue.get()
-        board_status_json = json.loads(board_status_answer['text'])
-        right_board_status_json = {'type': 'board_status',
-                                  'is_running': False}
-        self.assertDictEqual(board_status_json, right_board_status_json)
-
         # new user
         new_user_answer = await communicator.output_queue.get()
         answer = json.loads(new_user_answer['text'])
@@ -147,13 +133,6 @@ class BoardEditorConsumerTestCase(TransactionTestCase):
         right_channel_name_json = {'type': "channel_name",
                                    'channel_name': channel_name}
         self.assertDictEqual(channel_name_json, right_channel_name_json)
-
-        # board status
-        board_status_answer = await communicator.output_queue.get()
-        board_status_json = json.loads(board_status_answer['text'])
-        right_board_status_json = {'type': 'board_status',
-                                  'is_running': False}
-        self.assertDictEqual(board_status_json, right_board_status_json)
 
         # new_user
         new_user_answer = await communicator.output_queue.get()
@@ -181,13 +160,6 @@ class BoardEditorConsumerTestCase(TransactionTestCase):
                                            'channel_name': another_channel_name}
         self.assertDictEqual(another_channel_name_json, right_another_channel_name_json)
 
-        # board status
-        board_status_answer = await another_communicator.output_queue.get()
-        board_status_json = json.loads(board_status_answer['text'])
-        right_board_status_json = {'type': 'board_status',
-                                  'is_running': False}
-        self.assertDictEqual(board_status_json, right_board_status_json)
-
         # no new user answer
         self.assertTrue(await another_communicator.receive_nothing(1))
         self.assertEqual(2, await sync_to_async(Presence.objects.count)())  # number of connections
@@ -198,7 +170,6 @@ class BoardEditorConsumerTestCase(TransactionTestCase):
         await communicator.connect()
 
         _ = await communicator.output_queue.get()  # channel_name
-        _ = await communicator.output_queue.get()  # board_status
         _ = await communicator.output_queue.get()  # new_user
 
         await communicator.send_json_to({'type': 'board_info'})
@@ -216,7 +187,6 @@ class BoardEditorConsumerTestCase(TransactionTestCase):
         await communicator.connect()
 
         _ = await communicator.output_queue.get()  # channel_name
-        _ = await communicator.output_queue.get()  # board_status
         _ = await communicator.output_queue.get()  # new_user
 
         await communicator.send_json_to({'type': 'active_users'})
@@ -239,7 +209,6 @@ class BoardEditorConsumerTestCase(TransactionTestCase):
         await communicator.connect()
 
         _ = await communicator.output_queue.get()  # channel_name
-        _ = await communicator.output_queue.get()  # board_status
         _ = await communicator.output_queue.get()  # new_user
 
         users_data = [{'username': 'Michael', 'email': '1@mail.ru', 'password': '1345'},
@@ -274,7 +243,6 @@ class BoardEditorConsumerTestCase(TransactionTestCase):
         await communicator.connect()
 
         _ = await communicator.output_queue.get()  # channel_name
-        _ = await communicator.output_queue.get()  # board_status
         _ = await communicator.output_queue.get()  # new_user
 
         # the second connection
@@ -283,7 +251,6 @@ class BoardEditorConsumerTestCase(TransactionTestCase):
         await another_communicator.connect()
 
         _ = await another_communicator.output_queue.get()  # channel_name
-        _ = await another_communicator.output_queue.get()  # board_status
 
         # active users
         await communicator.send_json_to({'type': 'active_users'})
@@ -307,7 +274,6 @@ class BoardEditorConsumerTestCase(TransactionTestCase):
         await communicator.connect()
 
         _ = await communicator.output_queue.get()  # channel_name
-        _ = await communicator.output_queue.get()  # board_status
         _ = await communicator.output_queue.get()  # new_user
 
         await communicator.send_json_to({'type': 'all_users'})
@@ -330,7 +296,6 @@ class BoardEditorConsumerTestCase(TransactionTestCase):
         await communicator.connect()
 
         _ = await communicator.output_queue.get()  # channel_name
-        _ = await communicator.output_queue.get()  # board_status
         _ = await communicator.output_queue.get()  # new_user
 
         # the second connection
@@ -339,7 +304,6 @@ class BoardEditorConsumerTestCase(TransactionTestCase):
         await another_communicator.connect()
 
         _ = await another_communicator.output_queue.get()  # channel_name
-        _ = await another_communicator.output_queue.get()  # board_status
 
         # active users
         await communicator.send_json_to({'type': 'all_users'})
@@ -364,7 +328,6 @@ class BoardEditorConsumerTestCase(TransactionTestCase):
         await communicator.connect()
 
         _ = await communicator.output_queue.get()  # channel_name
-        _ = await communicator.output_queue.get()  # board_status
         _ = await communicator.output_queue.get()  # new_user
 
         users_data = [{'username': 'Michael', 'email': '1@mail.ru', 'password': '1345'},
@@ -392,7 +355,6 @@ class BoardEditorConsumerTestCase(TransactionTestCase):
         await communicator.connect()
 
         _ = await communicator.output_queue.get()  # channel_name
-        _ = await communicator.output_queue.get()  # board_status
         _ = await communicator.output_queue.get()  # new_user
 
         new_name = 'another_board_1'
@@ -414,7 +376,6 @@ class BoardEditorConsumerTestCase(TransactionTestCase):
         await communicator.connect()
 
         _ = await communicator.output_queue.get()  # channel_name
-        _ = await communicator.output_queue.get()  # board_status
         _ = await communicator.output_queue.get()  # new_user
 
         new_board_config = {'name': 'another_board_1',
@@ -437,7 +398,6 @@ class BoardEditorConsumerTestCase(TransactionTestCase):
         await communicator.connect()
 
         _ = await communicator.output_queue.get()  # channel_name
-        _ = await communicator.output_queue.get()  # board_status
         _ = await communicator.output_queue.get()  # new_user
 
         new_board_config = {'name': self.board.name,
@@ -457,7 +417,6 @@ class BoardEditorConsumerTestCase(TransactionTestCase):
         await communicator.connect()
 
         _ = await communicator.output_queue.get()  # channel_name
-        _ = await communicator.output_queue.get()  # board_status
         _ = await communicator.output_queue.get()  # new_user
 
         await communicator.send_json_to({'type': 'change_board_config',
@@ -475,7 +434,6 @@ class BoardEditorConsumerTestCase(TransactionTestCase):
         await communicator.connect()
 
         _ = await communicator.output_queue.get()  # channel_name
-        _ = await communicator.output_queue.get()  # board_status
         _ = await communicator.output_queue.get()  # new_user
 
         new_access = Access.EDITOR
@@ -498,7 +456,6 @@ class BoardEditorConsumerTestCase(TransactionTestCase):
         await communicator.connect()
 
         _ = await communicator.output_queue.get()  # channel_name
-        _ = await communicator.output_queue.get()  # board_status
         _ = await communicator.output_queue.get()  # new_user
 
         # the second user connect
@@ -510,7 +467,6 @@ class BoardEditorConsumerTestCase(TransactionTestCase):
         await another_communicator.connect()
 
         _ = await another_communicator.output_queue.get()  # channel_name
-        _ = await another_communicator.output_queue.get()  # board_status
         _ = await another_communicator.output_queue.get()  # new_user
 
         # the second user try to change the first user access
@@ -539,7 +495,6 @@ class BoardEditorConsumerTestCase(TransactionTestCase):
         await communicator.connect()
 
         _ = await communicator.output_queue.get()  # channel_name
-        _ = await communicator.output_queue.get()  # board_status
         _ = await communicator.output_queue.get()  # new_user
 
         # the second user connect
@@ -551,7 +506,6 @@ class BoardEditorConsumerTestCase(TransactionTestCase):
         await another_communicator.connect()
 
         _ = await another_communicator.output_queue.get()  # channel_name
-        _ = await another_communicator.output_queue.get()  # board_status
         _ = await another_communicator.output_queue.get()  # new_user
 
         # the second user try to change the first user access
@@ -573,7 +527,6 @@ class BoardEditorConsumerTestCase(TransactionTestCase):
         await communicator.connect()
 
         _ = await communicator.output_queue.get()  # channel_name
-        _ = await communicator.output_queue.get()  # board_status
         _ = await communicator.output_queue.get()  # new_user
 
         # the second user connect
@@ -585,7 +538,6 @@ class BoardEditorConsumerTestCase(TransactionTestCase):
         await another_communicator.connect()
 
         _ = await another_communicator.output_queue.get()  # channel_name
-        _ = await another_communicator.output_queue.get()  # board_status
         _ = await another_communicator.output_queue.get()  # new_user
 
         await communicator.send_json_to({'type': 'change_user_access',
