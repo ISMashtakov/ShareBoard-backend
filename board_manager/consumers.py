@@ -12,7 +12,8 @@ from rest_framework import status
 from authentication.models import CustomUser
 from .models import Board, UserBoards
 from .serializers import (
-    UserWithAccessSerializer
+    UserWithAccessSerializer,
+    BoardSerializer
 )
 from authentication.serializers import UserSerializer
 from .exceptions import BoardManagerException
@@ -130,6 +131,25 @@ class BoardEditorConsumer(JsonWebsocketConsumer):
             user_serializer = UserWithAccessSerializer(another_user)
             self.send_to_group({'type': event['type'],
                                 'user': user_serializer.data})
+
+    @catch_websocket_exception([])
+    def board_info(self, event):
+        self.board.refresh_from_db()
+        board_serializer = BoardSerializer(self.board)
+        self.send_json({**event,
+                        'board': board_serializer.data})
+
+    @catch_websocket_exception(['config'])
+    def change_board_config(self, event):
+        self.board.refresh_from_db()
+        for field in event['config']:
+            setattr(self.board, field, event['config'][field])
+
+        self.board.save()
+
+        board_serializer = BoardSerializer(self.board)
+        self.send_to_group({'type': event['type'],
+                            'board': board_serializer.data})
 
     @remove_presence
     def disconnect(self, code):

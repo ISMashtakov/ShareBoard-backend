@@ -155,6 +155,7 @@ class BoardEditorConsumerTestCase(TransactionTestCase):
 
         def get_last_presence():
             return Presence.objects.filter(user=self.user).last().channel_name
+
         another_channel_name = await sync_to_async(get_last_presence)()
         right_another_channel_name_json = {'type': "channel_name",
                                            'channel_name': another_channel_name}
@@ -163,23 +164,6 @@ class BoardEditorConsumerTestCase(TransactionTestCase):
         # no new user answer
         self.assertTrue(await another_communicator.receive_nothing(1))
         self.assertEqual(2, await sync_to_async(Presence.objects.count)())  # number of connections
-
-    async def test_board_info(self):
-        communicator = WebsocketCommunicator(application.application_mapping["websocket"],
-                                             f"/boards/{self.board.pk}/1278/")
-        await communicator.connect()
-
-        _ = await communicator.output_queue.get()  # channel_name
-        _ = await communicator.output_queue.get()  # new_user
-
-        await communicator.send_json_to({'type': 'board_info'})
-        board_info_answer = await communicator.output_queue.get()
-        self.assertEqual(board_info_answer['type'], 'websocket.send')
-
-        board_answer = json.loads(board_info_answer['text'])
-        right_board_answer = {'type': 'board_info',
-                             'board': BoardSerializer(self.board).data}
-        self.assertDictEqual(board_answer, right_board_answer)
 
     async def test_active_users__one_user(self):
         communicator = WebsocketCommunicator(application.application_mapping["websocket"],
@@ -367,7 +351,7 @@ class BoardEditorConsumerTestCase(TransactionTestCase):
         board_info_answer = await communicator.output_queue.get()
         board_answer = json.loads(board_info_answer['text'])
         right_board_answer = {'type': 'change_board_config',
-                             'board': BoardSerializer(self.board).data}
+                              'board': BoardSerializer(self.board).data}
         self.assertDictEqual(board_answer, right_board_answer)
 
     async def test_change_board_config__change_board_name_and_pl(self):
@@ -379,7 +363,7 @@ class BoardEditorConsumerTestCase(TransactionTestCase):
         _ = await communicator.output_queue.get()  # new_user
 
         new_board_config = {'name': 'another_board_1',
-                           'board_type': 'js'}
+                            'board_type': 'board_for_notes'}
         await communicator.send_json_to({'type': 'change_board_config',
                                          'config': new_board_config})
 
@@ -389,7 +373,7 @@ class BoardEditorConsumerTestCase(TransactionTestCase):
         board_info_answer = await communicator.output_queue.get()
         board_answer = json.loads(board_info_answer['text'])
         right_board_answer = {'type': 'change_board_config',
-                             'board': BoardSerializer(self.board).data}
+                              'board': BoardSerializer(self.board).data}
         self.assertDictEqual(board_answer, right_board_answer)
 
     async def test_change_board_config__change_to_the_same_config(self):
@@ -401,14 +385,14 @@ class BoardEditorConsumerTestCase(TransactionTestCase):
         _ = await communicator.output_queue.get()  # new_user
 
         new_board_config = {'name': self.board.name,
-                           'board_type': self.board.board_type}
+                            'board_type': self.board.board_type}
         await communicator.send_json_to({'type': 'change_board_config',
                                          'config': new_board_config})
 
         board_info_answer = await communicator.output_queue.get()
         board_answer = json.loads(board_info_answer['text'])
         right_board_answer = {'type': 'change_board_config',
-                             'board': BoardSerializer(self.board).data}
+                              'board': BoardSerializer(self.board).data}
         self.assertDictEqual(board_answer, right_board_answer)
 
     async def test_change_board_config__change_nothing(self):
@@ -425,7 +409,7 @@ class BoardEditorConsumerTestCase(TransactionTestCase):
 
         board_answer = json.loads(board_info_answer['text'])
         right_board_answer = {'type': 'change_board_config',
-                             'board': BoardSerializer(self.board).data}
+                              'board': BoardSerializer(self.board).data}
         self.assertDictEqual(board_answer, right_board_answer)
 
     async def test_change_link_access(self):
@@ -443,7 +427,7 @@ class BoardEditorConsumerTestCase(TransactionTestCase):
         board_info_answer = await communicator.output_queue.get()
         board_answer = json.loads(board_info_answer['text'])
         right_board_answer = {'type': 'change_link_access',
-                             'new_access': new_access}
+                              'new_access': new_access}
         self.assertDictEqual(board_answer, right_board_answer)
 
         await sync_to_async(self.board.refresh_from_db)()
@@ -550,6 +534,7 @@ class BoardEditorConsumerTestCase(TransactionTestCase):
         def another_user_with_access():
             user_with_access = UserBoards.objects.get(user=another_user, board=self.board)
             return UserWithAccessSerializer(user_with_access).data
+
         right_change_access_answer = {'type': 'change_user_access',
                                       'user': await sync_to_async(another_user_with_access)()}
         self.assertDictEqual(change_access_answer, right_change_access_answer)
