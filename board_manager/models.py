@@ -86,5 +86,7 @@ class Node(models.Model):
     status = models.CharField(max_length=248)
     color = models.CharField(max_length=16)
     assigned = models.CharField(null=True)
+    position_x = models.FloatField(default=0)
+    position_y = models.FloatField(default=0)
     created = models.DateTimeField(default=timezone.now)
     updated = models.DateTimeField(default=timezone.now)
