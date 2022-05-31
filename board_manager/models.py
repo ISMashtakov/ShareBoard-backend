@@ -75,3 +75,16 @@ class UserBoards(models.Model):
                              on_delete=cascade_with_deleting_boards_where_user_is_owner,
                              related_name='user_boards')
     access = models.IntegerField(choices=Access.choices)
+
+
+class Node(models.Model):
+    board = models.ForeignKey(Board, on_delete=models.CASCADE, related_name='notes')
+    title = models.CharField(max_length=248)
+    description = models.TextField()
+    tag = models.CharField(max_length=248)
+    link_to = models.CharField(max_length=248)
+    status = models.CharField(max_length=248)
+    color = models.CharField(max_length=16)
+    assigned = models.CharField(null=True)
+    created = models.DateTimeField(default=timezone.now)
+    updated = models.DateTimeField(default=timezone.now)
