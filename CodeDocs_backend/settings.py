@@ -164,7 +164,7 @@ WSGI_APPLICATION = 'CodeDocs_backend.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql_psycopg2',
-        'NAME': 'shared_boards',
+        'NAME': 'shared_board',
         'USER': 'postgres',
         'PASSWORD': 'postgres',
         'HOST': '127.0.0.1',
