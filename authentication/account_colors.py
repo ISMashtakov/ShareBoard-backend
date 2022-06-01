@@ -1,12 +1,12 @@
 import random
 
-COLORS = ['#F45D01',  # 'orange',
-          '#C7567F',  # 'dark pink',
-          '#5688C7',  # 'blue',
-          '#B756C7',  # 'violet',
-          '#56C7A5',  # 'turquoise',
-          '#C75656',  # 'red',
-          '#81C756']  # 'green'
+COLORS = ['#5688C7',  # 'blue',
+          '#F45D5D',  # 'red',
+          '#965DF4',  # 'purple',
+          '#F4C95D',  # 'yellow',
+          '#F49C5D',  # 'orange',
+
+          '#F45D93']  # 'pink',
 
 
 def random_color() -> str:
