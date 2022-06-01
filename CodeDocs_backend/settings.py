@@ -31,8 +31,8 @@ ALLOWED_HOSTS = ['26.124.121.68',
                  '127.0.0.1',
                  '26.124.121.68']
 
-DOMAIN = '26.124.121.68:3000'
-SITE_NAME = 'code_docs'
+DOMAIN = 'localhost:3000'
+SITE_NAME = 'shared_board'
 
 CHANNEL_LAYERS = {
     "default": {
