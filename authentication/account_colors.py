@@ -5,7 +5,6 @@ COLORS = ['#5688C7',  # 'blue',
           '#965DF4',  # 'purple',
           '#F4C95D',  # 'yellow',
           '#F49C5D',  # 'orange',
-
           '#F45D93']  # 'pink',
 
 

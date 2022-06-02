@@ -88,6 +88,7 @@ class Node(models.Model):
     assigned = models.CharField(max_length=248, null=True)
     position_x = models.FloatField(default=0)
     position_y = models.FloatField(default=0)
-    is_blocked = models.BooleanField(default=False)
+    blocked_by = models.ForeignKey(get_user_model(), related_name='blocked_nodes',
+                                   on_delete=models.SET_NULL, null=True, default=None)
     created = models.DateTimeField(default=timezone.now)
     updated = models.DateTimeField(default=timezone.now)
