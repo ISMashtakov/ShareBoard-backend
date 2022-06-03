@@ -7,7 +7,7 @@ from authentication.serializers import UserSerializer
 class BoardWithoutContentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Board
-        exclude = ('created', 'users')
+        exclude = ['users']
 
 
 class UserBoardsSerializer(serializers.ModelSerializer):

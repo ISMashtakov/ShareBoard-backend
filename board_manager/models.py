@@ -31,6 +31,7 @@ class Board(models.Model):
     name = models.CharField(max_length=248)
     board_type = models.CharField(choices=BoardTypes.choices, max_length=50)
     created = models.DateTimeField(default=timezone.now)
+    updated = models.DateTimeField(default=timezone.now)
     users = models.ManyToManyField(get_user_model(),
                                    through='UserBoards',
                                    related_name='boards')
