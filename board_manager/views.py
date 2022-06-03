@@ -16,9 +16,9 @@ from .serializers import (
 @csrf_exempt
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
-@catch_view_exception(('name', 'board_type'), boards_logger)
+@catch_view_exception(['board_type'], boards_logger)
 def create_board(request):
-    board = BoardManager.create_board(request.data['name'],
+    board = BoardManager.create_board("Untitled",
                                       request.data['board_type'],
                                       request.user,
                                       request.data.get('prev_board_id'))
