@@ -96,12 +96,14 @@ EMAIL_HOST_PASSWORD = os.getenv('CODE_DOCS_EMAIL_PASSWORD')
 EMAIL_USE_TLS = True
 SERVER_EMAIL = os.getenv('CODE_DOCS_EMAIL')
 DEFAULT_FROM_EMAIL = os.getenv('CODE_DOCS_EMAIL')
-
+# YYYY-MM-DDTHH:MM:SS
 REST_FRAMEWORK = {
   'DEFAULT_AUTHENTICATION_CLASSES': (
     'rest_framework_simplejwt.authentication.JWTAuthentication',
   ),
-  'EXCEPTION_HANDLER': 'authentication.exception_handler.custom_exception_handler'
+  'EXCEPTION_HANDLER': 'authentication.exception_handler.custom_exception_handler',
+  'DATE_INPUT_FORMATS': ["%Y-%m-%dT%H:%M:%S"],
+  'DATETIME_FORMAT': ["%Y-%m-%dT%H:%M:%S"]
 }
 
 SIMPLE_JWT = {
