@@ -49,7 +49,7 @@ def my_boards(request):
     boards = BoardManager.get_user_boards(request.user)
     serializer = UserBoardsSerializer(boards, many=True)
     for row in serializer.data:
-        owner = UserBoards.objects.get(board=row["id"], access=Access.OWNER)
+        owner = UserBoards.objects.get(board=row["board"]["id"], access=Access.OWNER)
         row["owner"] = UserSerializer(owner).data
     return JsonResponse(serializer.data, status=status.HTTP_200_OK, safe=False)
 
