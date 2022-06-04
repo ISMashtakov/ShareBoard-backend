@@ -22,7 +22,7 @@ def create_board(request):
                                       request.data['board_type'],
                                       request.user,
                                       request.data.get('prev_board_id'))
-    serializer = BoardWithoutContentSerializer(board)
+    serializer = UserBoardsSerializer(board)
     return JsonResponse(serializer.data, status=status.HTTP_201_CREATED)
 
 
