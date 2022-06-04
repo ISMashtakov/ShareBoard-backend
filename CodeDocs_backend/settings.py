@@ -103,7 +103,7 @@ REST_FRAMEWORK = {
   ),
   'EXCEPTION_HANDLER': 'authentication.exception_handler.custom_exception_handler',
   'DATE_INPUT_FORMATS': ["%Y-%m-%dT%H:%M:%S"],
-  'DATETIME_FORMAT': ["%Y-%m-%dT%H:%M:%S"]
+  'DATETIME_FORMAT': "%Y-%m-%dT%H:%M:%S"
 }
 
 SIMPLE_JWT = {
