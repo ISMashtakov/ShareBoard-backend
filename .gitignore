@@ -97,4 +97,4 @@ filr_manager/run_script
 # migrations
 authentication/migrations/
 board_manager/migrations/
-
+test.py

@@ -4,6 +4,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
 from django.views.decorators.csrf import csrf_exempt
 
+from authentication.serializers import UserSerializer
 from helpers.helper import catch_view_exception
 from .logger import boards_logger
 from .board_manager_backend import BoardManager
@@ -11,6 +12,7 @@ from .exceptions import BoardManagerException
 from .serializers import (
     UserBoardsSerializer, BoardWithoutContentSerializer
 )
+from .models import UserBoards, Access
 
 
 @csrf_exempt
@@ -22,7 +24,7 @@ def create_board(request):
                                       request.data['board_type'],
                                       request.user,
                                       request.data.get('prev_board_id'))
-    serializer = UserBoardsSerializer(board)
+    serializer = BoardWithoutContentSerializer(board)
     return JsonResponse(serializer.data, status=status.HTTP_201_CREATED)
 
 
@@ -46,6 +48,9 @@ def delete_board(request):
 def my_boards(request):
     boards = BoardManager.get_user_boards(request.user)
     serializer = UserBoardsSerializer(boards, many=True)
+    for row in serializer.data:
+        owner = UserBoards.objects.get(board=row["id"], access=Access.OWNER)
+        row["owner"] = UserSerializer(owner).data
     return JsonResponse(serializer.data, status=status.HTTP_200_OK, safe=False)
 
 

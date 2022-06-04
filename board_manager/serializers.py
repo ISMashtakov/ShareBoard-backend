@@ -8,7 +8,7 @@ class BoardWithoutContentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Board
         exclude = ['users']
-
+        
 
 class UserBoardsSerializer(serializers.ModelSerializer):
     board = BoardWithoutContentSerializer(read_only=True)
