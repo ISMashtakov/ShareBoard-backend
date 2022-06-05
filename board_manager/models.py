@@ -35,6 +35,7 @@ class Board(models.Model):
     users = models.ManyToManyField(get_user_model(),
                                    through='UserBoards',
                                    related_name='boards')
+    prefix = models.CharField(max_length=8)
 
     link_access = models.IntegerField(default=Access.VIEWER, choices=Access.choices)
 
@@ -79,17 +80,24 @@ class UserBoards(models.Model):
 
 
 class Node(models.Model):
-    board = models.ForeignKey(Board, on_delete=models.CASCADE, related_name='notes')
-    title = models.CharField(max_length=248)
-    description = models.TextField()
-    tag = models.CharField(max_length=248)
-    link_to = models.CharField(max_length=248)
-    status = models.CharField(max_length=248)
+    board = models.ForeignKey(Board, on_delete=models.CASCADE, related_name='nodes')
+    title = models.CharField(max_length=248, default='Untitled')
+    description = models.TextField(default='')
+    tag = models.IntegerField()
+    link_to = models.CharField(max_length=248, default='')
+    status = models.CharField(max_length=248, null=True, default=None)
     color = models.CharField(max_length=16)
-    assigned = models.CharField(max_length=248, null=True)
-    position_x = models.FloatField(default=0)
-    position_y = models.FloatField(default=0)
+    assigned = models.CharField(max_length=248, null=True, default=None)
+    position_x = models.FloatField(default=100)
+    position_y = models.FloatField(default=100)
     blocked_by = models.ForeignKey(get_user_model(), related_name='blocked_nodes',
                                    on_delete=models.SET_NULL, null=True, default=None)
     created = models.DateTimeField(default=timezone.now)
     updated = models.DateTimeField(default=timezone.now)
+
+    @staticmethod
+    def create(board: Board, tag: str, color: str) -> Node:
+        return Node.objects.create(board=board, tag=tag, color=color)
+
+    def can_be_changed(self, field: str) -> bool:
+        return field in ['title', 'description', 'link_to', 'status', 'assigned', 'position_x', 'position_y']

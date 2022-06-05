@@ -1,3 +1,6 @@
+import random
+import string
+
 from .models import Board, UserBoards, Access
 
 from .exceptions import (
@@ -9,7 +12,8 @@ class BoardManager:
     @staticmethod
     def create_board(name, board_type, owner, prev_board_id=None):
         board = Board.objects.create(name=name,
-                                     board_type=board_type)
+                                     board_type=board_type,
+                                     prefix=random.choices(string.ascii_lowercase, k=5))
 
         UserBoards.objects.create(board=board,
                                   user=owner,

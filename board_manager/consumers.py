@@ -1,3 +1,6 @@
+import datetime
+import json
+
 from channels.generic.websocket import JsonWebsocketConsumer
 from asgiref.sync import async_to_sync
 from rest_framework_simplejwt.authentication import JWTTokenUserAuthentication
@@ -9,11 +12,12 @@ from rest_framework_simplejwt.exceptions import InvalidToken
 from channels.exceptions import StopConsumer
 from rest_framework import status
 
+from authentication.account_colors import random_color
 from authentication.models import CustomUser
-from .models import Board, UserBoards
+from .models import Board, UserBoards, Node
 from .serializers import (
     UserWithAccessSerializer,
-    BoardSerializer
+    BoardSerializer, NodeSerializer
 )
 from authentication.serializers import UserSerializer
 from .exceptions import BoardManagerException
@@ -67,6 +71,9 @@ class BoardEditorConsumer(JsonWebsocketConsumer):
         self.send_json({'type': 'channel_name',
                         'channel_name': self.channel_name})
 
+        self.send_json({'type': 'board_nodes',
+                        'nodes': NodeSerializer(self.board.nodes.all(), many=True).data})
+
         if Presence.objects.filter(user=self.scope['user'], room=self.room).count() == 1:
             user_serializer = UserWithAccessSerializer(access_to_board)
             self.send_to_group({'type': 'new_user',
@@ -112,6 +119,7 @@ class BoardEditorConsumer(JsonWebsocketConsumer):
     def change_link_access(self, event):
         self.board.refresh_from_db()
         self.board.link_access = event['new_access']
+        self.board.updated = datetime.datetime.now()
         self.board.save()
         self.send_to_group(event)
 
@@ -144,12 +152,104 @@ class BoardEditorConsumer(JsonWebsocketConsumer):
         self.board.refresh_from_db()
         for field in event['config']:
             setattr(self.board, field, event['config'][field])
-
+        self.board.updated = datetime.datetime.now()
         self.board.save()
 
         board_serializer = BoardSerializer(self.board)
         self.send_to_group({'type': event['type'],
                             'board': board_serializer.data})
+
+    def send_change_node(self, node: Node):
+        self.send_to_group({'type': "node_changed",
+                            'node': NodeSerializer(node).data})
+
+    @catch_websocket_exception(['node_id'])
+    def start_changing_node(self, event):
+        try:
+            node = Node.objects.get(id=event['node_id'])
+        except Node.DoesNotExist:
+            return
+        if node.blocked_by is not None:
+            self.send_json({'type': "can_not_changing",
+                            'node': NodeSerializer(node).data})
+            return
+        node.blocked_by = self.scope['user']
+        node.save()
+        self.send_change_node(node)
+
+    @catch_websocket_exception(['node'])
+    def changing_node(self, event):
+        try:
+            node = Node.objects.get(id=event['node']['id'])
+        except Node.DoesNotExist:
+            return
+
+        if node.blocked_by != self.scope['user']:
+            self.send_json({'type': "can_not_changing",
+                            'node': NodeSerializer(node).data})
+            return
+
+        for field in event['node']:
+            if node.can_be_changed(field):
+                setattr(node, field, event['node'][field])
+        node.updated = datetime.datetime.now()
+        node.save()
+
+        self.board.refresh_from_db()
+        self.board.updated = datetime.datetime.now()
+        self.board.save()
+
+        self.send_change_node(node)
+
+    @catch_websocket_exception(['node_id'])
+    def stop_changing_node(self, event):
+        try:
+            node = Node.objects.get(id=event['node_id'])
+        except Node.DoesNotExist:
+            return
+        if node.blocked_by != self.scope['user']:
+            self.send_json({'type': "can_not_changing",
+                            'node': NodeSerializer(node).data})
+            return
+        node.blocked_by = None
+        node.save()
+        self.send_change_node(node)
+
+    @catch_websocket_exception([])
+    def create_node(self, event):
+        self.board.refresh_from_db()
+        self.board.updated = datetime.datetime.now()
+        self.board.save()
+        nodes = Node.objects.filter(board=self.board).order_by('-tag').all()
+        if len(nodes) == 0:
+            max_tag = 0
+        else:
+            max_tag = nodes[0].tag
+        node = Node.create(self.board, tag=max_tag+1, color=random_color())
+
+        self.send_to_group({'type': "node_created",
+                            'node': NodeSerializer(node).data})
+
+    @catch_websocket_exception(['node_id'])
+    def delete_node(self, event):
+        try:
+            node = Node.objects.get(id=event['node_id'])
+        except Node.DoesNotExist:
+            return
+        if node.blocked_by != self.scope['user']:
+            self.send_json({'type': "can_not_changing",
+                            'node': NodeSerializer(node).data})
+            return
+        node_id = node.pk
+        node.delete()
+
+        self.board.refresh_from_db()
+        self.board.updated = datetime.datetime.now()
+        self.board.save()
+
+        self.send_to_group({"type": "node_deleted",
+                            "node_id" : node_id
+                            })
 
     @remove_presence
     def disconnect(self, code):
@@ -158,6 +258,11 @@ class BoardEditorConsumer(JsonWebsocketConsumer):
             user_serializer = UserSerializer(self.scope['user'])
             self.send_to_group({'type': 'delete_user',
                                 'user': user_serializer.data})
+            blocked_nodes = Node.objects.filter(board=self.board, blocked_by=self.scope['user']).all()
+            for node in blocked_nodes:
+                node.blocked_by = None
+                node.save()
+                self.send_change_node(node)
 
         async_to_sync(self.channel_layer.group_discard)(self.room_group_name,
                                                         self.channel_name)

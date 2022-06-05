@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from board_manager.models import Board, UserBoards
+from board_manager.models import Board, UserBoards, Node
 from authentication.serializers import UserSerializer
 
 
@@ -30,3 +30,15 @@ class BoardSerializer(serializers.ModelSerializer):
     class Meta:
         model = Board
         fields = ('id', 'name', 'board_type', 'link_access')
+
+
+class NodeSerializer(serializers.ModelSerializer):
+    full_tag = serializers.SerializerMethodField('get_full_tag')
+
+    def get_full_tag(self, node: Node):
+        return node.board.prefix + '-' + node.tag
+
+    class Meta:
+        model = Node
+        exclude = ['tag', 'board']
+
