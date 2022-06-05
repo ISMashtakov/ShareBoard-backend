@@ -13,7 +13,7 @@ class BoardManager:
     def create_board(name, board_type, owner, prev_board_id=None):
         board = Board.objects.create(name=name,
                                      board_type=board_type,
-                                     prefix=random.choices(string.ascii_lowercase, k=5))
+                                     prefix=''.join(random.choices(string.ascii_lowercase, k=5)))
 
         UserBoards.objects.create(board=board,
                                   user=owner,
