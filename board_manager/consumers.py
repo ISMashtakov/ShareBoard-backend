@@ -264,9 +264,8 @@ class BoardEditorConsumer(JsonWebsocketConsumer):
     def disconnect(self, code):
         # leave room
         if not Presence.objects.filter(user=self.scope['user'], room=self.room).exists():
-            user_serializer = UserSerializer(self.scope['user'])
             self.send_to_group({'type': 'delete_user',
-                                'user': user_serializer.data})
+                                'user_id': self.scope['user'].pk})
             blocked_nodes = Node.objects.filter(board=self.board, blocked_by=self.scope['user']).all()
             for node in blocked_nodes:
                 node.blocked_by = None
