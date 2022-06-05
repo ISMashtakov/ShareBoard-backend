@@ -68,14 +68,18 @@ class BoardEditorConsumer(JsonWebsocketConsumer):
                                                     self.channel_name)
         self.room = Room.objects.add(self.room_group_name, self.channel_name, self.scope["user"])
 
+        user_serializer = UserWithAccessSerializer(access_to_board)
+
         self.send_json({'type': 'channel_name',
                         'channel_name': self.channel_name})
+
+        self.send_json({'type': 'current_user',
+                        'user': user_serializer.data})
 
         self.send_json({'type': 'board_info',
                         'board': BoardSerializer(self.board).data})
 
         if Presence.objects.filter(user=self.scope['user'], room=self.room).count() == 1:
-            user_serializer = UserWithAccessSerializer(access_to_board)
             self.send_to_group({'type': 'new_user',
                                 'user': user_serializer.data})
 
