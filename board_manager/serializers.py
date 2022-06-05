@@ -40,5 +40,5 @@ class NodeSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Node
-        exclude = ['tag']
+        exclude = ['tag', 'board']
 

@@ -1,5 +1,4 @@
 import datetime
-import json
 
 from channels.generic.websocket import JsonWebsocketConsumer
 from asgiref.sync import async_to_sync
@@ -12,14 +11,14 @@ from rest_framework_simplejwt.exceptions import InvalidToken
 from channels.exceptions import StopConsumer
 from rest_framework import status
 
-from authentication.account_colors import random_color
+from .colors import random_color
 from authentication.models import CustomUser
 from .models import Board, UserBoards, Node
 from .serializers import (
     UserWithAccessSerializer,
     BoardSerializer, NodeSerializer
 )
-from authentication.serializers import UserSerializer
+
 from .exceptions import BoardManagerException
 from .catch_websocket_exceptions import catch_websocket_exception
 
