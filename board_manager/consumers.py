@@ -71,9 +71,6 @@ class BoardEditorConsumer(JsonWebsocketConsumer):
         self.send_json({'type': 'channel_name',
                         'channel_name': self.channel_name})
 
-        # self.send_json({'type': 'board_nodes',
-        #                 'nodes': NodeSerializer(self.board.nodes.all(), many=True).data})
-
         self.send_json({'type': 'board_info',
                         'board': BoardSerializer(self.board).data})
 
@@ -165,6 +162,11 @@ class BoardEditorConsumer(JsonWebsocketConsumer):
     def send_change_node(self, node: Node):
         self.send_to_group({'type': "node_changed",
                             'node': NodeSerializer(node).data})
+
+    @catch_websocket_exception([])
+    def board_nodes(self, event):
+        self.send_json({'type': 'board_nodes',
+                        'nodes': NodeSerializer(self.board.nodes.all(), many=True).data})
 
     @catch_websocket_exception(['node_id'])
     def start_changing_node(self, event):
