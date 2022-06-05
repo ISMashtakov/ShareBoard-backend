@@ -33,12 +33,12 @@ class BoardSerializer(serializers.ModelSerializer):
 
 
 class NodeSerializer(serializers.ModelSerializer):
-    # full_tag = serializers.SerializerMethodField('get_full_tag')
-    #
-    # def get_full_tag(self, node: Node):
-    #     return node.board.prefix + '-' + node.tag
+    full_tag = serializers.SerializerMethodField('get_full_tag')
+
+    def get_full_tag(self, node: Node):
+        return str(node.board.prefix) + '-' + str(node.tag)
 
     class Meta:
         model = Node
-        fields = ('position_x', 'position_y', 'tag')
+        fields = ('position_x', 'position_y', 'full_tag')
 
