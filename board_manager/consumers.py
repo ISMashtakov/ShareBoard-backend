@@ -234,7 +234,10 @@ class BoardEditorConsumer(JsonWebsocketConsumer):
             max_tag = 0
         else:
             max_tag = nodes[0].tag
-        node = Node.create(self.board, tag=max_tag+1, color=random_color())
+        if event['status']:
+            node = Node.create(self.board, tag=max_tag+1, color=random_color())
+        else:
+            node = Node.create(self.board, tag=max_tag+1, color=random_color())
 
         self.send_to_group({'type': "node_created",
                             'node': NodeSerializer(node).data})
