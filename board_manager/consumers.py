@@ -236,7 +236,7 @@ class BoardEditorConsumer(JsonWebsocketConsumer):
         else:
             max_tag = nodes[0].tag
         if event['status']:
-            node = Node.create(self.board, tag=max_tag+1, color=random_color())
+            node = Node.create(self.board, status=event['status'], tag=max_tag+1, color=random_color())
         else:
             node = Node.create(self.board, tag=max_tag+1, color=random_color())
 
