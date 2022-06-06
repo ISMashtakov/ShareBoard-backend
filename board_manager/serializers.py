@@ -46,5 +46,5 @@ class NodeSerializer(serializers.ModelSerializer):
 class ColumnSerializer(serializers.ModelSerializer):
     class Meta:
         model = Column
-        fields = ("id", "name", "position")
+        fields = '__all__
 
