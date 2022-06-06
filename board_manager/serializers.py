@@ -46,4 +46,5 @@ class NodeSerializer(serializers.ModelSerializer):
 class ColumnSerializer(serializers.ModelSerializer):
     class Meta:
         model = Column
+        exclude = []
 
