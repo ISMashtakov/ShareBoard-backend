@@ -291,7 +291,7 @@ class BoardEditorConsumer(JsonWebsocketConsumer):
         self.board.save()
 
         try:
-            old_column = Column.objects.get(board=self.board, id=event['column_id']).all()
+            old_column = Column.objects.get(board=self.board, id=event['column_id'])
         except Column.DoesNotExist:
             return
 
