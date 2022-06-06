@@ -108,8 +108,5 @@ class Column(models.Model):
     name = models.CharField(max_length=248, default='Untitled')
     position = models.IntegerField()
 
-    class Meta:
-        unique_together = ['board', 'position']
-
     def can_be_changed(self, field: str) -> bool:
         return field in ['name']
