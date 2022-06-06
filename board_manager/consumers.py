@@ -279,7 +279,7 @@ class BoardEditorConsumer(JsonWebsocketConsumer):
 
         position = int(event['position'])
         Column.objects.filter(board=self.board, position__gte=position).all().update(position=F('position')+1)
-        new_column = Column.objects.create(position=position)
+        new_column = Column.objects.create(board=self.board, position=position)
         column_serializer = ColumnSerializer(new_column)
         self.send_json({'type': 'column_created',
                         'column': column_serializer.data})
