@@ -299,10 +299,7 @@ class BoardEditorConsumer(JsonWebsocketConsumer):
 
         old_column.delete()
 
-        old_columns = Column.objects.filter(board=self.board, position__gt=old_column.position).all()
-        for column in old_columns:
-            column.position -= 1
-            column.save()
+        Column.objects.filter(board=self.board, position__gt=old_column.position).all().update(position=F('position')-1)
         column_serializer = ColumnSerializer(old_column)
         self.send_json({'type': 'column_deleted',
                         'column': column_serializer.data})
