@@ -2,6 +2,7 @@ import datetime
 
 from channels.generic.websocket import JsonWebsocketConsumer
 from asgiref.sync import async_to_sync
+from django.db.models import F
 from rest_framework_simplejwt.authentication import JWTTokenUserAuthentication
 from channels_presence.models import Room, Presence
 from channels_presence.decorators import (
@@ -277,10 +278,7 @@ class BoardEditorConsumer(JsonWebsocketConsumer):
         self.board.save()
 
         position = int(event['position'])
-        old_columns = Column.objects.filter(board=self.board, position__gte=position).all()
-        for column in old_columns:
-            column.position += 1
-            column.save()
+        Column.objects.filter(board=self.board, position__gte=position).all().update(position=F('position')+1)
         new_column = Column.objects.create(position=position)
         column_serializer = ColumnSerializer(new_column)
         self.send_json({'type': 'column_created',
