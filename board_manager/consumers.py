@@ -164,7 +164,8 @@ class BoardEditorConsumer(JsonWebsocketConsumer):
 
     def send_change_node(self, node: Node):
         self.send_to_group({'type': "node_changed",
-                            'node': NodeSerializer(node).data})
+                            'node': NodeSerializer(node).data,
+                            'channel_name': self.channel_name})
 
     @catch_websocket_exception([])
     def board_nodes(self, event):
@@ -256,7 +257,7 @@ class BoardEditorConsumer(JsonWebsocketConsumer):
         self.board.save()
 
         self.send_to_group({"type": "node_deleted",
-                            "node_id" : node_id
+                            "node_id": node_id
                             })
 
     @remove_presence
