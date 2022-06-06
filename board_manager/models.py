@@ -101,3 +101,15 @@ class Node(models.Model):
 
     def can_be_changed(self, field: str) -> bool:
         return field in ['title', 'description', 'link_to', 'status', 'assigned', 'position_x', 'position_y']
+
+
+class Column(models.Model):
+    board = models.ForeignKey(Board, on_delete=models.CASCADE, related_name='columns')
+    name = models.CharField(max_length=248, default='Untitled')
+    position = models.IntegerField()
+
+    class Meta:
+        unique_together = ['board', 'position']
+
+    def can_be_changed(self, field: str) -> bool:
+        return field in ['name']

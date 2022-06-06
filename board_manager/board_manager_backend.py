@@ -1,7 +1,7 @@
 import random
 import string
 
-from .models import Board, UserBoards, Access
+from .models import Board, UserBoards, Access, Column
 
 from .exceptions import (
     NoRequiredBoardAccess, BoardDoesNotExistException
@@ -34,6 +34,11 @@ class BoardManager:
                 participants.append(UserBoards(user=access_to_board.user, board=board, access=access_to_prev_board))
 
             UserBoards.objects.bulk_create(participants)
+
+        if board_type == Board.BoardTypes.KANBAN:
+            Column.objects.create(board=board, name='TODO', position=0)
+            Column.objects.create(board=board, name='IN PROGRESS', position=1)
+            Column.objects.create(board=board, name='DONE', position=2)
         return board
 
     @staticmethod

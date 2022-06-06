@@ -13,10 +13,10 @@ from rest_framework import status
 
 from .colors import random_color
 from authentication.models import CustomUser
-from .models import Board, UserBoards, Node
+from .models import Board, UserBoards, Node, Column
 from .serializers import (
     UserWithAccessSerializer,
-    BoardSerializer, NodeSerializer
+    BoardSerializer, NodeSerializer, ColumnSerializer
 )
 
 from .exceptions import BoardManagerException
@@ -259,6 +259,74 @@ class BoardEditorConsumer(JsonWebsocketConsumer):
         self.send_to_group({"type": "node_deleted",
                             "node_id": node_id
                             })
+
+    @catch_websocket_exception([])
+    def columns_info(self, event):
+        columns = Column.objects.filter(board=self.board).order_by('position').all()
+        column_serializer = ColumnSerializer(columns, many=True)
+        self.send_json({**event,
+                        'columns': column_serializer.data})
+
+    @catch_websocket_exception(['position'])
+    def create_column(self, event):
+        self.board.refresh_from_db()
+        self.board.updated = datetime.datetime.now()
+        self.board.save()
+
+        position = int(event['position'])
+        old_columns = Column.objects.filter(board=self.board, position__gte=position).all()
+        for column in old_columns:
+            column.position += 1
+            column.save()
+        new_column = Column.objects.create(position=position)
+        column_serializer = ColumnSerializer(new_column)
+        self.send_json({'type': 'column_created',
+                        'column': column_serializer.data})
+
+    @catch_websocket_exception(['column_id'])
+    def delete_column(self, event):
+        self.board.refresh_from_db()
+        self.board.updated = datetime.datetime.now()
+        self.board.save()
+
+        try:
+            old_column = Column.objects.get(board=self.board, id=event['column_id']).all()
+        except Column.DoesNotExist:
+            return
+
+        Node.objects.filter(status=old_column.id).all().delete()
+
+        old_column.delete()
+
+        old_columns = Column.objects.filter(board=self.board, position__gt=old_column.position).all()
+        for column in old_columns:
+            column.position -= 1
+            column.save()
+        column_serializer = ColumnSerializer(old_column)
+        self.send_json({'type': 'column_deleted',
+                        'column': column_serializer.data})
+
+    @catch_websocket_exception(['column'])
+    def changing_column(self, event):
+        self.board.refresh_from_db()
+        self.board.updated = datetime.datetime.now()
+        self.board.save()
+        try:
+            column = Column.objects.get(board=self.board, id=event['column']['id'])
+        except Column.DoesNotExist:
+            return
+
+        for field in event['column']:
+            if column.can_be_changed(field):
+                setattr(column, field, event['node'][field])
+        column.save()
+
+        column_serializer = ColumnSerializer(column)
+        self.send_to_group({
+            "type": "column_changed",
+            "column": column_serializer.data,
+            "channel": self.channel_name
+        })
 
     @remove_presence
     def disconnect(self, code):

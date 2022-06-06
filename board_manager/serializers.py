@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from board_manager.models import Board, UserBoards, Node
+from board_manager.models import Board, UserBoards, Node, Column
 from authentication.serializers import UserSerializer
 
 
@@ -41,4 +41,9 @@ class NodeSerializer(serializers.ModelSerializer):
     class Meta:
         model = Node
         exclude = ['tag', 'board']
+
+
+class ColumnSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Column
 
