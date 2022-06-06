@@ -297,12 +297,12 @@ class BoardEditorConsumer(JsonWebsocketConsumer):
 
         Node.objects.filter(status=old_column.id).all().delete()
 
+        data = ColumnSerializer(old_column).data
         old_column.delete()
-
         Column.objects.filter(board=self.board, position__gt=old_column.position).all().update(position=F('position')-1)
-        column_serializer = ColumnSerializer(old_column)
+
         self.send_json({'type': 'column_deleted',
-                        'column': column_serializer.data})
+                        'column': data})
 
     @catch_websocket_exception(['column'])
     def changing_column(self, event):
