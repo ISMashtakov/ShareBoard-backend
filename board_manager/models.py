@@ -96,8 +96,8 @@ class Node(models.Model):
     updated = models.DateTimeField(default=timezone.now)
 
     @staticmethod
-    def create(board: Board, tag: str, color: str) -> 'Node':
-        return Node.objects.create(board=board, tag=tag, color=color)
+    def create(board: Board, tag: str, color: str, status: str = None) -> 'Node':
+        return Node.objects.create(board=board, tag=tag, color=color, status=status)
 
     def can_be_changed(self, field: str) -> bool:
         return field in ['title', 'description', 'link_to', 'status', 'assigned', 'position_x', 'position_y']
