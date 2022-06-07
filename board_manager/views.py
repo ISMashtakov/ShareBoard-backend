@@ -80,7 +80,8 @@ def leave_board(request):
         return HttpResponse(content=e.message, status=e.response_status)
 
 
-@api_view(['GET'])
+@csrf_exempt
+@api_view(['POST'])
 @permission_classes([IsAuthenticated])
 @catch_view_exception(['board_id'], boards_logger)
 def get_board_columns(request):
