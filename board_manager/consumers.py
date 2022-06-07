@@ -281,7 +281,7 @@ class BoardEditorConsumer(JsonWebsocketConsumer):
         Column.objects.filter(board=self.board, position__gte=position).all().update(position=F('position')+1)
         new_column = Column.objects.create(board=self.board, position=position)
         column_serializer = ColumnSerializer(new_column)
-        self.send_json({'type': 'column_created',
+        self.send_to_group({'type': 'column_created',
                         'column': column_serializer.data})
 
     @catch_websocket_exception(['column_id'])
@@ -301,7 +301,7 @@ class BoardEditorConsumer(JsonWebsocketConsumer):
         old_column.delete()
         Column.objects.filter(board=self.board, position__gt=old_column.position).all().update(position=F('position')-1)
 
-        self.send_json({'type': 'column_deleted',
+        self.send_to_group({'type': 'column_deleted',
                         'column': data})
 
     @catch_websocket_exception(['column'])
