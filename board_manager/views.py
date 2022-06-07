@@ -88,7 +88,6 @@ def get_board_columns(request):
     try:
         board = Board.objects.get(id=request.data['board_id'])
         columns = Column.objects.filter(board=board).all()
-        serializer = ColumnSerializer(list(columns), many=True)
-        return HttpResponse(serializer.data, status=status.HTTP_200_OK)
+        return HttpResponse([column.to_dict() for column in columns], status=status.HTTP_200_OK)
     except BoardManagerException as e:
         return HttpResponse(content=e.message, status=e.response_status)

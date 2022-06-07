@@ -110,3 +110,10 @@ class Column(models.Model):
 
     def can_be_changed(self, field: str) -> bool:
         return field in ['name']
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'name': self.name,
+            'position': self.position,
+        }
