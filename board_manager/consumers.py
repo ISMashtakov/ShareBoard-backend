@@ -316,7 +316,7 @@ class BoardEditorConsumer(JsonWebsocketConsumer):
 
         for field in event['column']:
             if column.can_be_changed(field):
-                setattr(column, field, event['node'][field])
+                setattr(column, field, event['column'][field])
         column.save()
 
         column_serializer = ColumnSerializer(column)
