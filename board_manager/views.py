@@ -10,9 +10,9 @@ from .logger import boards_logger
 from .board_manager_backend import BoardManager
 from .exceptions import BoardManagerException
 from .serializers import (
-    UserBoardsSerializer, BoardWithoutContentSerializer
+    UserBoardsSerializer, BoardWithoutContentSerializer, ColumnSerializer
 )
-from .models import UserBoards, Access
+from .models import UserBoards, Access, Board, Column
 
 
 @csrf_exempt
@@ -76,5 +76,18 @@ def leave_board(request):
         BoardManager.leave_board(request.data['board_id'],
                                  request.user)
         return HttpResponse(status=status.HTTP_204_NO_CONTENT)
+    except BoardManagerException as e:
+        return HttpResponse(content=e.message, status=e.response_status)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+@catch_view_exception(['board_id'], boards_logger)
+def get_board_columns(request):
+    try:
+        board = Board.objects.get(id=request.data['board_id'])
+        columns = Column.objects.filter(board=board).all()
+        serializer = ColumnSerializer(columns, many=True)
+        return HttpResponse(serializer.data, status=status.HTTP_200_OK)
     except BoardManagerException as e:
         return HttpResponse(content=e.message, status=e.response_status)

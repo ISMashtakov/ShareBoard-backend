@@ -326,6 +326,20 @@ class BoardEditorConsumer(JsonWebsocketConsumer):
             "channel": self.channel_name
         })
 
+    @catch_websocket_exception(['board_id', 'columns'])
+    def migrate_to_another_board(self, event):
+        self.board.refresh_from_db()
+        self.board.updated = datetime.datetime.now()
+        self.board.save()
+        to_board = Board.objects.get(id=event['board_id'])
+        nodes = Node.objects.filter(board=self.board).all()
+        for node in nodes:
+            node.board = to_board
+            node.status = event['columns'][node.status]
+            node.save()
+        to_board.updated = datetime.datetime.now()
+        to_board.save()
+
     @remove_presence
     def disconnect(self, code):
         # leave room
