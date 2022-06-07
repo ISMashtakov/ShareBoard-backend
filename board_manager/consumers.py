@@ -335,7 +335,8 @@ class BoardEditorConsumer(JsonWebsocketConsumer):
         nodes = Node.objects.filter(board=self.board).all()
         for node in nodes:
             node.board = to_board
-            node.status = event['columns'][str(node.status)]
+            node.status = event['columns'][node.status]
+            print("STATUS", node.status)
             node.save()
         to_board.updated = datetime.datetime.now()
         to_board.save()
