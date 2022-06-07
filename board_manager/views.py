@@ -1,3 +1,5 @@
+import json
+
 from django.http import HttpResponse, JsonResponse
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
@@ -88,6 +90,6 @@ def get_board_columns(request):
     try:
         board = Board.objects.get(id=request.data['board_id'])
         columns = Column.objects.filter(board=board).all()
-        return HttpResponse([column.to_dict() for column in columns], status=status.HTTP_200_OK)
+        return HttpResponse(json.dumps([column.to_dict() for column in columns]), status=status.HTTP_200_OK)
     except BoardManagerException as e:
         return HttpResponse(content=e.message, status=e.response_status)
